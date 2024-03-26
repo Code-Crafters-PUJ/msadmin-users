@@ -13,6 +13,7 @@ x-postgres-common:
 services:
   db:
     <<: *postgres-common
+    container_name: msadmin-users-db
     ports:
       - 5432:5432
     environment:
@@ -36,6 +37,7 @@ services:
 
   db_replica:
     <<: *postgres-common
+    container_name: msadmin-users-db-replica
     ports:
       - 5433:5432
     environment:
