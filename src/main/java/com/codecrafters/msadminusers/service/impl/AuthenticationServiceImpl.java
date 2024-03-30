@@ -29,11 +29,11 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     private final AuthenticationManager authenticationManager;
     @Override
     public JwtAuthenticationResponse signup(SignUpRequest request) {
-
+        var role = roleRepository.findByName(request.getRole());
         var user = Account.builder().firstName(request.getName()).last_name(request.getLast_name())
                 .email(request.getEmail()).password(passwordEncoder.encode(request.getPassword()))
 
-                .roles(roleRepository.findByName(request.getRole())).build();
+                .rol(role).build();
         userRepository.save(user);
         var jwt = jwtService.generateToken((UserDetails) user);
         return JwtAuthenticationResponse.builder().token(jwt).build();

@@ -1,5 +1,6 @@
 package com.codecrafters.msadminusers.config;
 
+import com.codecrafters.msadminusers.repository.UserRepository;
 import com.codecrafters.msadminusers.service.UserService;
 import lombok.RequiredArgsConstructor;
 
@@ -45,6 +46,7 @@ public class SecurityConfig {
         return new BCryptPasswordEncoder();
     }
 
+
     @Bean
     public AuthenticationProvider authenticationProvider() {
         DaoAuthenticationProvider authProvider = new DaoAuthenticationProvider();
@@ -58,4 +60,6 @@ public class SecurityConfig {
             throws Exception {
         return config.getAuthenticationManager();
     }
+
+
 }

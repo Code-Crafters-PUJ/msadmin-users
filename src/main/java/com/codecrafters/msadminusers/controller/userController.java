@@ -13,7 +13,6 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 public class userController {
 
-        @Autowired
         private UserService userService;
 
         @GetMapping("/{id}")
@@ -21,7 +20,7 @@ public class userController {
             return ResponseEntity.ok(userService.getUserById(id));
         }
         @DeleteMapping("/{id}")
-        public ResponseEntity<Void> deleteAccount(@PathVariable Long id) {
+        public ResponseEntity<Void> deleteAccount(@PathVariable Integer id) {
                 userService.deleteById(id);
                 return ResponseEntity.noContent().build();
         }

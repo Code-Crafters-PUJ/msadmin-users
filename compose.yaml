@@ -35,33 +35,33 @@ services:
     env_file:
       - .env
 
-  db_replica:
-    <<: *postgres-common
-    container_name: msadmin-users-db-replica
-    ports:
-      - 5433:5432
-    environment:
-      PGUSER: replicator
-      PGPASSWORD: replicator_password
-    command: |
-      bash -c "
-      until pg_basebackup --pgdata=/var/lib/postgresql/data -R --slot=replication_slot --host=db --port=5432
-      do
-      echo 'Waiting for primary to connect...'
-      sleep 1s
-      done
-      echo 'Backup done, starting replica...'
-      chmod 0700 /var/lib/postgresql/data
-      postgres
-      "
-    volumes:
-      - db_replica_volume:/var/lib/postgresql/data
-    depends_on:
-      - db
-    env_file:
-      - .env
+  #_replica:
+  #<<: *postgres-common
+  #container_name: msadmin-users-db-replica
+  #ports:
+  #  - 5433:5432
+  #environment:
+  #  PGUSER: replicator
+  #  PGPASSWORD: replicator_password
+  #command: |
+  #  bash -c "
+  #  until pg_basebackup --pgdata=/var/lib/postgresql/data -R --slot=replication_slot --host=db --port=5432
+  #  do
+  #  echo 'Waiting for primary to connect...'
+  #  sleep 1s
+  #  done
+  #  echo 'Backup done, starting replica...'
+  #  chmod 0700 /var/lib/postgresql/data
+  #  postgres
+  #  "
+  #volumes:
+  #  - db_replica_volume:/var/lib/postgresql/data
+  #depends_on:
+  #  - db
+  #env_file:
+  #  - .env
 
 
 volumes:
   db_volume:
-  db_replica_volume:
+  #db_replica_volume:

@@ -8,7 +8,7 @@ import org.springframework.stereotype.Repository;
 import java.util.Optional;
 @Repository
 
-public interface UserRepository extends JpaRepository<Account, Long> {
+public interface UserRepository extends JpaRepository<Account, Integer> {
     Optional<Account> findById(Integer id);
     Optional<Account> findByCedula(Integer cedula);
     Optional<Account> findByEmail(String email);

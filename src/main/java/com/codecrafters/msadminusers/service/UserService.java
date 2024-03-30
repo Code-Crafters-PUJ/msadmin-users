@@ -10,7 +10,7 @@ public interface UserService {
 
     Account getUserById(Integer id);
 
-    void deleteById(Long id);
+    void deleteById(Integer id);
 
     Account save(Account user);
 

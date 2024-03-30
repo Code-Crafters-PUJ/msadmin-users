@@ -31,9 +31,6 @@ public class Account {
     private String password;
     private Date last_access_date;
 
-    @ManyToMany(fetch = FetchType.EAGER, cascade = CascadeType.ALL)
-    @JoinTable(name = "user_roles",
-            joinColumns = @JoinColumn(name = "user_id", referencedColumnName = "idcuenta"),
-            inverseJoinColumns = @JoinColumn(name = "role_id", referencedColumnName = "idrol"))
-    private Set<Rol> roles;
+    @OneToOne(fetch = FetchType.EAGER, cascade = CascadeType.ALL)
+    private Rol rol;
 }
