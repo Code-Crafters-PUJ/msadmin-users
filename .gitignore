@@ -40,5 +40,6 @@ build/
 *.pot
 *.pyc
 __pycache__/
+.venv/
 
 
