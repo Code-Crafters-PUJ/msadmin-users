@@ -8,8 +8,8 @@ import secrets
 class AccountSerializer(serializers.ModelSerializer):
     class Meta:
         model = Account
-        fields = ['cedula', 'first_name', 'last_name', 'email',
-                'role','password']
+        fields = ['cedula', 'first_name', 'last_name',
+                'role']
         
 
         extra_kwargs = {'password': {'write_only': True}}
@@ -22,3 +22,5 @@ class AccountSerializer(serializers.ModelSerializer):
             instance.make_password(password)
         instance.save()
         return instance
+
+

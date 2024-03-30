@@ -1,5 +1,5 @@
 import jwt
-from .models import Account, role
+from .models import Account, role, Credentials
 from django.views import View
 from django.utils.decorators import method_decorator
 from django.http import JsonResponse
@@ -28,16 +28,17 @@ import datetime
 import json
 # Create your views here.
 
+
 class RegisterAccountView(APIView):
     @method_decorator(csrf_exempt)
     def dispatch(self, request, *args, **kwargs):
         return super().dispatch(request, *args, **kwargs)
 
-
     def verriy_email(self, email):
-        if Account.objects.filter(email=email).exists():
+        if Credentials.objects.filter(email=email).exists():
             return True
         return False
+
     def post(self, request):
         try:
             jd = json.loads(request.body)
@@ -46,18 +47,18 @@ class RegisterAccountView(APIView):
             if self.verriy_email(email):
                 return JsonResponse({'message': 'Email already exists'}, status=400)
             else:
-
+                
                 Account.objects.create(
                     first_name=jd['first_name'],
                     last_name=jd['last_name'],
                     cedula=jd['cedula'],
-                    email=jd['email'],
-                    password=make_password(jd['password']),
                     role=role.objects.get(role=jd['role'])
                 )
-
-
-
+                Credentials.objects.create(
+                    email=jd['email'],
+                    password=make_password(jd['password']),
+                    idcuenta=Account.objects.get(cedula=jd['cedula'])
+                )
 
                 return JsonResponse({'message': 'Cuenta creada exitosamente'}, status=201)
         except Exception as e:
@@ -76,21 +77,22 @@ class LoginAccountView(APIView):
             password = jd.get('password')
             if not email or not password:
                 return JsonResponse({'jwt': 'Campos faltantes'})
-
-            user = get_object_or_404(Account, email=email)
+            user = get_object_or_404(Credentials, email=email)
             if not check_password(password, user.password):
                 return JsonResponse({'jwt': 'Contraseña incorrecta'})
+            
+            account = Account.objects.get(idcuenta=user.idcuenta_id)
+            
             payload = {
-                'cedula': user.cedula,
-                'rol': user.role_id,
+                'id': account.idcuenta,
                 'exp': datetime.datetime.utcnow() + datetime.timedelta(minutes=360),
                 'iat': datetime.datetime.utcnow()
             }
-            token = jwt.encode(payload, SECRET_KEY,algorithm='HS256')
+            token = jwt.encode(payload, SECRET_KEY, algorithm='HS256')
             response = JsonResponse({'jwt': token})
             response.set_cookie(key='jwt', value=token, httponly=True)
-            user.last_login = datetime.datetime.now()
-            user.save()
+            account.last_login = datetime.datetime.now()
+            account.save()
             return response
 
         except json.JSONDecodeError:
@@ -105,6 +107,7 @@ class getAccountInfoview(APIView):
     @method_decorator(csrf_exempt)
     def dispatch(self, request, *args, **kwargs):
         return super().dispatch(request, *args, **kwargs)
+
     def validate_token(self, token):
         try:
             payload = jwt.decode(token, SECRET_KEY, algorithms=['HS256'])
@@ -113,6 +116,7 @@ class getAccountInfoview(APIView):
             return 'Token expirado'
         except jwt.InvalidTokenError:
             return 'Token invalido'
+
     def get(self, request, pk):
         try:
             jd = json.loads(request.body)
@@ -128,7 +132,7 @@ class getAccountInfoview(APIView):
             return JsonResponse({'message': 'Usuario no encontrado'}, status=404)
         except Exception as e:
             return JsonResponse({'message': str(e)}, status=400)
-        
+
     def put(self, request, pk):
         try:
             jd = json.loads(request.body)
@@ -149,7 +153,7 @@ class getAccountInfoview(APIView):
             return JsonResponse({'message': 'Usuario no encontrado'}, status=404)
         except Exception as e:
             return JsonResponse({'message': str(e)}, status=400)
-        
+
     def delete(self, request, pk):
         try:
             jd = json.loads(request.body)
@@ -167,4 +171,3 @@ class getAccountInfoview(APIView):
             return JsonResponse({'message': 'Usuario no encontrado'}, status=404)
         except Exception as e:
             return JsonResponse({'message': str(e)}, status=400)
-        

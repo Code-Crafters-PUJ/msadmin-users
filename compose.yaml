@@ -11,6 +11,7 @@ x-postgres-common:
     retries: 5
 
 services:
+
   db:
     <<: *postgres-common
     container_name: msadmin-users-db
@@ -60,14 +61,16 @@ services:
       - db
     env_file:
       - .env
-  rabbitmq:
-    image: rabbitmq:3-management
-    ports:
-      - "5672:5672"  # Puerto para la comunicación AMQP
-      - "15672:15672"  # Puerto para la interfaz de gestión web
-    environment:
-      RABBITMQ_DEFAULT_USER: usuario
-      RABBITMQ_DEFAULT_PASS: adsadsdasasdasd
+  
+    #rabbitmq:
+    #  image: rabbitmq:3-management
+    #  ports:
+    #    - "5672:5672"  # Puerto para la comunicación AMQP
+    #    - "15672:15672"  # Puerto para la interfaz de gestión web
+    #  environment:
+    #    RABBITMQ_DEFAULT_USER: usuario
+    #    RABBITMQ_DEFAULT_PASS: adsadsdasasdasd
+
 
 volumes:
   db_volume:
