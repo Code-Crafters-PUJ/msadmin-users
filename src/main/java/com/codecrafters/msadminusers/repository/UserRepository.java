@@ -1,12 +1,14 @@
 package com.codecrafters.msadminusers.repository;
 
 import com.codecrafters.msadminusers.domain.Account;
+import org.springframework.context.annotation.Primary;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 import java.util.Optional;
 @Repository
-public interface UserRepository extends JpaRepository<Account, Integer> {
+
+public interface UserRepository extends JpaRepository<Account, Long> {
     Optional<Account> findById(Integer id);
     Optional<Account> findByCedula(Integer cedula);
     Optional<Account> findByEmail(String email);
