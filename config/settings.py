@@ -88,11 +88,11 @@ DATABASES = {
         # "HOST": "default",
         "PORT": "5432",
         'OPTIONS': {
-            'options': '-c search_path=usermicroservice'  # Specify your schema here
-        }
-    }
+            'options': '-c search_path=public'  # Specify your schema here
+        },
+        'TEST': {'NAME': 'test'}
+    },
 }
-
 
 # Password validation
 # https://docs.djangoproject.com/en/4.2/ref/settings/#auth-password-validators
