@@ -113,8 +113,8 @@ AUTH_PASSWORD_VALIDATORS = [
 
 RABBITMQ_HOST = 'localhost'
 RABBITMQ_PORT = 5672
-RABBITMQ_USERNAME = 'tu_usuario'
-RABBITMQ_PASSWORD = 'tu_contraseña'
+RABBITMQ_USERNAME = 'messenger'
+RABBITMQ_PASSWORD = 'messenger'
 
 # Internationalization
 # https://docs.djangoproject.com/en/4.2/topics/i18n/
