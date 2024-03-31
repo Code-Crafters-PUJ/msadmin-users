@@ -8,7 +8,9 @@ def create_roles(apps, schema_editor):
     Roles = apps.get_model('Account', 'role')
     datos = [
         {'role': 'ADMIN'},
-        {'role': 'SIN-ASIGNAR'},
+        {'role': 'VENTAS'},
+        {'role': 'SOPORTE'},
+        {'role': 'MARKETING'},
     ]
     for dato in datos:
         Roles.objects.create(**dato)

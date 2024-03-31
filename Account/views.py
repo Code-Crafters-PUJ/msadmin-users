@@ -59,39 +59,36 @@ class LoginAccountView(APIView):
         return super().dispatch(request, *args, **kwargs)
 
     def post(self, request):
-        try:
-            jd = json.loads(request.body)
-            email = jd.get('email')
-            password = jd.get('password')
-            if not email or not password:
-                return JsonResponse({'jwt': 'Campos faltantes'})
-            user = get_object_or_404(Credentials, email=email)
-            if not check_password(password, user.password):
-                return JsonResponse({'jwt': 'Contraseña incorrecta'})
+        #try:
+        jd = json.loads(request.body)
+        email = jd.get('email')
+        password = jd.get('password')
+        if not email or not password:
+            return JsonResponse({'jwt': 'Campos faltantes'})
+        user = get_object_or_404(Credentials, email=email)
+        if not check_password(password, user.password):
+            return JsonResponse({'jwt': 'Contraseña incorrecta'})
+        account = Account.objects.get(idcuenta=user.idcuenta_id)
+        
+        payload = {
+            'id': account.idcuenta,
+            'role': account.role.role,
+            'exp': datetime.datetime.utcnow() + datetime.timedelta(minutes=360),
+            'iat': datetime.datetime.utcnow()
+        }
+        token = jwt.encode(payload, SECRET_KEY, algorithm='HS256')
+        response = JsonResponse({'jwt': token})
+        response.set_cookie(key='jwt', value=token, httponly=True)
+        account.last_login = datetime.datetime.now()
+        account.save()
+        return response
 
-            account = Account.objects.get(idcuenta=user.idcuenta_id)
-
-            payload = {
-                'id': account.idcuenta,
-                'exp': datetime.datetime.utcnow() + datetime.timedelta(minutes=360),
-                'iat': datetime.datetime.utcnow()
-            }
-            token = jwt.encode(payload, SECRET_KEY, algorithm='HS256')
-
-            response = JsonResponse({'jwt': token})
-            response.set_cookie(key='jwt', value=token, httponly=True)
-
-            account.last_login = datetime.datetime.now()
-            account.save()
-
-            return response
-
-        except json.JSONDecodeError:
-            return JsonResponse({'jwt': 'Error en el formato de datos'})
-        except ObjectDoesNotExist:
-            return JsonResponse({'jwt': 'Usuario no encontrado'})
-        except Exception as e:
-            return JsonResponse({'jwt': str(e)})
+        #except json.JSONDecodeError:
+        #    return JsonResponse({'jwt': 'Error en el formato de datos'})
+        #except ObjectDoesNotExist:
+        #    return JsonResponse({'jwt': 'Usuario no encontrado'})
+        #except Exception as e:
+        #    return JsonResponse({'jwt': str(e)})
 
 
 class getAccountInfoview(APIView):
