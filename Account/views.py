@@ -1,27 +1,15 @@
 import jwt
 from .models import Account, role, Credentials
-from django.views import View
 from django.utils.decorators import method_decorator
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework.views import APIView
-from django.shortcuts import render
 from config.settings import SECRET_KEY
-from rest_framework.response import Response
-from rest_framework.exceptions import AuthenticationFailed
 from django.contrib.auth.hashers import check_password
 from django.shortcuts import get_object_or_404
 from django.core.exceptions import ObjectDoesNotExist
 from .serializers import AccountSerializer
-
-from django.core.mail import EmailMultiAlternatives
-from django.template.loader import render_to_string
-from django.utils.html import strip_tags
-from rest_framework import status
 from django.contrib.auth.hashers import make_password
-
-
-from django.db.models import Q
 
 
 import datetime
@@ -45,7 +33,7 @@ class RegisterAccountView(APIView):
             email = jd['email']
             errors = {}
             if self.verriy_email(email):
-                return JsonResponse({'message': 'Email already exists'}, status=400)
+                return JsonResponse({'message': 'El email ya esta registrado'}, status=400)
             else:
                 
                 Account.objects.create(
@@ -80,19 +68,22 @@ class LoginAccountView(APIView):
             user = get_object_or_404(Credentials, email=email)
             if not check_password(password, user.password):
                 return JsonResponse({'jwt': 'Contraseña incorrecta'})
-            
+
             account = Account.objects.get(idcuenta=user.idcuenta_id)
-            
+
             payload = {
                 'id': account.idcuenta,
                 'exp': datetime.datetime.utcnow() + datetime.timedelta(minutes=360),
                 'iat': datetime.datetime.utcnow()
             }
             token = jwt.encode(payload, SECRET_KEY, algorithm='HS256')
+
             response = JsonResponse({'jwt': token})
             response.set_cookie(key='jwt', value=token, httponly=True)
+
             account.last_login = datetime.datetime.now()
             account.save()
+
             return response
 
         except json.JSONDecodeError:
@@ -100,7 +91,7 @@ class LoginAccountView(APIView):
         except ObjectDoesNotExist:
             return JsonResponse({'jwt': 'Usuario no encontrado'})
         except Exception as e:
-            return JsonResponse({'jwt': 'Error de servidor'})
+            return JsonResponse({'jwt': str(e)})
 
 
 class getAccountInfoview(APIView):
@@ -119,8 +110,8 @@ class getAccountInfoview(APIView):
 
     def get(self, request, pk):
         try:
-            jd = json.loads(request.body)
-            token = jd['jwt']
+
+            token  = request.headers['Authorization']
             if self.validate_token(token) == 'Token expirado':
                 return JsonResponse({'message': 'Token expirado'}, status=400)
             elif self.validate_token(token) == 'Token invalido':
@@ -137,7 +128,6 @@ class getAccountInfoview(APIView):
         try:
             jd = json.loads(request.body)
             token = jd['jwt']
-            self.validate_token(jd['jwt'])
             if self.validate_token(token) == 'Token expirado':
                 return JsonResponse({'message': 'Token expirado'}, status=400)
             elif self.validate_token(token) == 'Token invalido':
@@ -156,9 +146,7 @@ class getAccountInfoview(APIView):
 
     def delete(self, request, pk):
         try:
-            jd = json.loads(request.body)
-            token = jd['jwt']
-            self.validate_token(jd['jwt'])
+            token = request.headers['Authorization']
             if self.validate_token(token) == 'Token expirado':
                 return JsonResponse({'message': 'Token expirado'}, status=400)
             elif self.validate_token(token) == 'Token invalido':
@@ -171,3 +159,7 @@ class getAccountInfoview(APIView):
             return JsonResponse({'message': 'Usuario no encontrado'}, status=404)
         except Exception as e:
             return JsonResponse({'message': str(e)}, status=400)
+        
+
+
+
