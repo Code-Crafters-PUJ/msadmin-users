@@ -15,7 +15,7 @@ services:
     <<: *postgres-common
     container_name: msadmin-users-db
     ports:
-      - 5432:5432
+      - ${POSTGRES_PORT}:5432
     environment:
       POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_USER: ${POSTGRES_USER}
@@ -39,7 +39,7 @@ services:
     <<: *postgres-common
     container_name: msadmin-users-db-replica
     ports:
-      - 5433:5432
+      - ${POSTGRES_PORT_REPLICA}:5432
     environment:
       PGUSER: replicator
       PGPASSWORD: replicator_password
