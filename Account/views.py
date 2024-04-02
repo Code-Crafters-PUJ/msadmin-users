@@ -35,7 +35,7 @@ class RegisterAccountView(APIView):
             if self.verriy_email(email):
                 return JsonResponse({'message': 'El email ya esta registrado'}, status=400)
             else:
-                
+
                 Account.objects.create(
                     first_name=jd['first_name'],
                     last_name=jd['last_name'],
@@ -67,7 +67,7 @@ class LoginAccountView(APIView):
                 return JsonResponse({'jwt': 'Campos faltantes'})
             user = get_object_or_404(Credentials, email=email)
             if not check_password(password, user.password):
-                return JsonResponse({'jwt': 'Contraseña incorrecta'})
+                return JsonResponse({'jwt': 'ups! credenciales incorrectas'})
             account = Account.objects.get(idcuenta=user.idcuenta_id)
 
             payload = {
@@ -77,10 +77,11 @@ class LoginAccountView(APIView):
                 'iat': datetime.datetime.utcnow()
             }
             token = jwt.encode(payload, SECRET_KEY, algorithm='HS256')
-            response = JsonResponse({'jwt': token})
+            response = JsonResponse({'jwt': token, 'role': account.role.role})
             response.set_cookie(key='jwt', value=token, httponly=True)
             account.last_login = datetime.datetime.now()
             account.save()
+
             return response
 
         except json.JSONDecodeError:
@@ -108,7 +109,7 @@ class getAccountInfoview(APIView):
     def get(self, request, pk):
         try:
 
-            token  = request.headers['Authorization']
+            token = request.headers['Authorization']
             if self.validate_token(token) == 'Token expirado':
                 return JsonResponse({'message': 'Token expirado'}, status=400)
             elif self.validate_token(token) == 'Token invalido':
@@ -156,7 +157,3 @@ class getAccountInfoview(APIView):
             return JsonResponse({'message': 'Usuario no encontrado'}, status=404)
         except Exception as e:
             return JsonResponse({'message': str(e)}, status=400)
-        
-
-
-
