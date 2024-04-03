@@ -30,6 +30,7 @@ class RegisterAccountView(APIView):
     def post(self, request):
         try:
             jd = json.loads(request.body)
+            
             email = jd['email']
             errors = {}
             if self.verriy_email(email):
@@ -59,8 +60,11 @@ class LoginAccountView(APIView):
         return super().dispatch(request, *args, **kwargs)
 
     def post(self, request):
+        print(request)
         try:
             jd = json.loads(request.body)
+            print(jd)
+            print()
             email = jd.get('email')
             password = jd.get('password')
             if not email or not password:
@@ -84,11 +88,18 @@ class LoginAccountView(APIView):
 
             return response
 
-        except json.JSONDecodeError:
+        except json.JSONDecodeError as e:
+            print("Error al decodificar JSON:", e)
+            print("Cuerpo de la solicitud:", request.body)
+            # Manejar el error adecuadamente, por ejemplo, devolver una respuesta de error
             return JsonResponse({'jwt': 'Error en el formato de datos'})
         except ObjectDoesNotExist:
+            print("Usuario no encontrado")
+            # Manejar el error adecuadamente, por ejemplo, devolver una respuesta de error
             return JsonResponse({'jwt': 'Usuario no encontrado'})
         except Exception as e:
+            print("Error durante el procesamiento de la solicitud:", e)
+            # Devolver una respuesta de error adecuada
             return JsonResponse({'jwt': str(e)})
 
 
