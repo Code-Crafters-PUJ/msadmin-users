@@ -15,7 +15,7 @@ class Account(models.Model):
     idcuenta = models.AutoField(primary_key=True)
     first_name = models.CharField(max_length=50)
     last_name = models.CharField(max_length=50)
-    cedula = models.CharField(max_length=10, unique=True)
+    id_card = models.CharField(max_length=10, unique=True)
     last_login = models.DateTimeField(auto_now=True)
     connected = models.BooleanField(default=False)
     role = models.ForeignKey(role, on_delete=models.CASCADE)
