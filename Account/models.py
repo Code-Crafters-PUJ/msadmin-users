@@ -3,7 +3,8 @@ from django.db import models
 
 class role(models.Model):
     idrole = models.AutoField(primary_key=True)
-    role = models.CharField(max_length=50)
+    role_descripction = models.CharField(max_length=50)
+
 
 
 
@@ -16,8 +17,16 @@ class Account(models.Model):
     last_name = models.CharField(max_length=50)
     cedula = models.CharField(max_length=10, unique=True)
     last_login = models.DateTimeField(auto_now=True)
+    connected = models.BooleanField(default=False)
     role = models.ForeignKey(role, on_delete=models.CASCADE)
-    
+
+
+class Report(models.Model):
+    id = models.AutoField(primary_key=True)
+    account_id = models.ForeignKey(Account, on_delete=models.CASCADE)
+    activity = models.CharField(max_length=45)
+    date = models.DateTimeField(auto_now=True)
+
 
 class Credentials(models.Model):
     idcuenta = models.ForeignKey(Account, on_delete=models.CASCADE)

@@ -48,7 +48,7 @@ class RegisterAccountView(APIView):
                     password=make_password(jd['password']),
                     idcuenta=Account.objects.get(cedula=jd['cedula'])
                 )
-
+                
                 return JsonResponse({'message': 'Cuenta creada exitosamente'}, status=201)
         except Exception as e:
             return JsonResponse({'message': str(e)}, status=400)
