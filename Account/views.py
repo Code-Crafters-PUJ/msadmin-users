@@ -209,7 +209,7 @@ class getAllAccountInfoview(APIView):
         except jwt.InvalidTokenError:
             return 'Token invalido'
 
-    def get(self, request, pk):
+    def get(self, request):
         try:
 
             token = request.headers['Authorization']
