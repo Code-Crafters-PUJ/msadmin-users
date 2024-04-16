@@ -26,6 +26,9 @@ class AccountSerializer(serializers.ModelSerializer):
 
 
 class AccountSerializer(serializers.ModelSerializer):
+    role = serializers.CharField(
+        source='role.role_descripction', read_only=True)
+
     class Meta:
         model = Account
         fields = '__all__'

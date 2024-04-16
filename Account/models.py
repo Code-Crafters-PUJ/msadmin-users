@@ -31,3 +31,16 @@ class Credentials(models.Model):
     REQUIRED_FIELDS = []
     is_anonymous = False
     is_authenticated = True
+
+
+class Module(models.Model):  # Subclass Model to define a Django model
+    idModule = models.AutoField(primary_key=True)
+    description = models.CharField(max_length=50)
+
+
+class Permissions(models.Model):  # Subclass Model to define a Django model
+    idPermissions = models.IntegerField(primary_key=True)
+    idModule = models.ForeignKey(Module, on_delete=models.CASCADE)
+    Operation = models.CharField(max_length=9, choices=[(
+        'Modify', 'Modify'), ('View', 'View')])
+    idAccount = models.ForeignKey(Account, on_delete=models.CASCADE)
