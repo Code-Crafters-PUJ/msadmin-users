@@ -40,13 +40,13 @@ class RegisterAccountView(APIView):
                 Account.objects.create(
                     first_name=jd['first_name'],
                     last_name=jd['last_name'],
-                    cedula=jd['cedula'],
+                    id_card=jd['id_card'],
                     role=role.objects.get(role=jd['role'])
                 )
                 Credentials.objects.create(
                     email=jd['email'],
                     password=make_password(jd['password']),
-                    idcuenta=Account.objects.get(cedula=jd['cedula'])
+                    idcuenta=Account.objects.get(id_card=jd['id_card'])
                 )
                 
                 return JsonResponse({'message': 'Cuenta creada exitosamente'}, status=201)
