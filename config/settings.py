@@ -44,7 +44,6 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "corsheaders",
     "Account",
-    "Permissions",
 ]
 
 MIDDLEWARE = [

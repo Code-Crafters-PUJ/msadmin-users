@@ -49,6 +49,7 @@ class RegisterAccountView(APIView):
                     idcuenta=Account.objects.get(id_card=jd['id_card'])
                 )
                 
+                
                 return JsonResponse({'message': 'Cuenta creada exitosamente'}, status=201)
         except Exception as e:
             return JsonResponse({'message': str(e)}, status=400)
