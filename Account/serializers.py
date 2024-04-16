@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Account,role
+from .models import Account, Report, Credentials
 
 import string
 import secrets
@@ -24,3 +24,19 @@ class AccountSerializer(serializers.ModelSerializer):
         return instance
 
 
+
+class AccountSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Account
+        fields = '__all__'
+
+
+class ReportSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Report
+        fields = '__all__'
+
+class CredentialsSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Credentials
+        exclude = ['password']

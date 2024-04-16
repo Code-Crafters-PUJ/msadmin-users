@@ -1,5 +1,5 @@
 import jwt
-from .models import Account, role, Credentials
+from .models import Account, role, Credentials, Report
 from django.utils.decorators import method_decorator
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
@@ -8,7 +8,7 @@ from config.settings import SECRET_KEY
 from django.contrib.auth.hashers import check_password
 from django.shortcuts import get_object_or_404
 from django.core.exceptions import ObjectDoesNotExist
-from .serializers import AccountSerializer
+from .serializers import AccountSerializer, CredentialsSerializer, ReportSerializer
 from django.contrib.auth.hashers import make_password
 
 
@@ -198,7 +198,7 @@ class getAllAccountInfoview(APIView):
             return 'Token expirado'
         except jwt.InvalidTokenError:
             return 'Token invalido'
-    
+
     def validate_role(self, token):
         try:
             payload = jwt.decode(token, SECRET_KEY, algorithms=['HS256'])
@@ -219,8 +219,15 @@ class getAllAccountInfoview(APIView):
             elif self.validate_role(token) != 'ADMIN':
                 return JsonResponse({'message': 'No tienes permisos para realizar esta accion'}, status=400)
             else:
-                users = Account.objects.all()
-                return JsonResponse({'users': AccountSerializer(users, many=True).data})
+                account_data = AccountSerializer(
+                    Account.objects.all(), many=True).data
+
+                report_data = ReportSerializer(
+                    Report.objects.all(), many=True).data
+                credentials_data = CredentialsSerializer(
+                    Credentials.objects.all(), many=True).data
+                return JsonResponse({'account': account_data, 'report': report_data, 'credentials': credentials_data})
+
         except ObjectDoesNotExist:
             return JsonResponse({'message': 'No hay usuarios'}, status=404)
         except Exception as e:
