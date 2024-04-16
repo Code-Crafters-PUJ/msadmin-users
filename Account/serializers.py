@@ -8,7 +8,7 @@ import secrets
 class AccountSerializer(serializers.ModelSerializer):
     class Meta:
         model = Account
-        fields = ['cedula', 'first_name', 'last_name',
+        fields = ['id_card', 'first_name', 'last_name',
                 'role']
         
 
