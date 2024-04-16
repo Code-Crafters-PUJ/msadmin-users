@@ -117,6 +117,15 @@ class getAccountInfoview(APIView):
         except jwt.InvalidTokenError:
             return 'Token invalido'
 
+    def validate_role(self, token):
+        try:
+            payload = jwt.decode(token, SECRET_KEY, algorithms=['HS256'])
+            return payload['role']
+        except jwt.ExpiredSignatureError:
+            return 'Token expirado'
+        except jwt.InvalidTokenError:
+            return 'Token invalido'
+
     def get(self, request, pk):
         try:
 
@@ -125,6 +134,8 @@ class getAccountInfoview(APIView):
                 return JsonResponse({'message': 'Token expirado'}, status=400)
             elif self.validate_token(token) == 'Token invalido':
                 return JsonResponse({'message': 'Token invalido'}, status=400)
+            elif self.validate_role(token) != 'ADMIN':
+                return JsonResponse({'message': 'No tienes permisos para realizar esta accion'}, status=400)
             else:
                 user = get_object_or_404(Account, pk=pk)
                 return JsonResponse({'user': AccountSerializer(user).data})
@@ -141,6 +152,8 @@ class getAccountInfoview(APIView):
                 return JsonResponse({'message': 'Token expirado'}, status=400)
             elif self.validate_token(token) == 'Token invalido':
                 return JsonResponse({'message': 'Token invalido'}, status=400)
+            elif self.validate_role(token) != 'ADMIN':
+                return JsonResponse({'message': 'No tienes permisos para realizar esta accion'}, status=400)
             else:
                 user = get_object_or_404(Account, pk=pk)
                 serializer = AccountSerializer(user, data=jd)
@@ -160,11 +173,55 @@ class getAccountInfoview(APIView):
                 return JsonResponse({'message': 'Token expirado'}, status=400)
             elif self.validate_token(token) == 'Token invalido':
                 return JsonResponse({'message': 'Token invalido'}, status=400)
+            elif self.validate_role(token) != 'ADMIN':
+                return JsonResponse({'message': 'No tienes permisos para realizar esta accion'}, status=400)
             else:
                 user = get_object_or_404(Account, pk=pk)
                 user.delete()
                 return JsonResponse({'message': 'Usuario eliminado exitosamente'}, status=200)
         except ObjectDoesNotExist:
             return JsonResponse({'message': 'Usuario no encontrado'}, status=404)
+        except Exception as e:
+            return JsonResponse({'message': str(e)}, status=400)
+
+
+class getAllAccountInfoview(APIView):
+    @method_decorator(csrf_exempt)
+    def dispatch(self, request, *args, **kwargs):
+        return super().dispatch(request, *args, **kwargs)
+
+    def validate_token(self, token):
+        try:
+            payload = jwt.decode(token, SECRET_KEY, algorithms=['HS256'])
+            return payload
+        except jwt.ExpiredSignatureError:
+            return 'Token expirado'
+        except jwt.InvalidTokenError:
+            return 'Token invalido'
+    
+    def validate_role(self, token):
+        try:
+            payload = jwt.decode(token, SECRET_KEY, algorithms=['HS256'])
+            return payload['role']
+        except jwt.ExpiredSignatureError:
+            return 'Token expirado'
+        except jwt.InvalidTokenError:
+            return 'Token invalido'
+
+    def get(self, request, pk):
+        try:
+
+            token = request.headers['Authorization']
+            if self.validate_token(token) == 'Token expirado':
+                return JsonResponse({'message': 'Token expirado'}, status=400)
+            elif self.validate_token(token) == 'Token invalido':
+                return JsonResponse({'message': 'Token invalido'}, status=400)
+            elif self.validate_role(token) != 'ADMIN':
+                return JsonResponse({'message': 'No tienes permisos para realizar esta accion'}, status=400)
+            else:
+                users = Account.objects.all()
+                return JsonResponse({'users': AccountSerializer(users, many=True).data})
+        except ObjectDoesNotExist:
+            return JsonResponse({'message': 'No hay usuarios'}, status=404)
         except Exception as e:
             return JsonResponse({'message': str(e)}, status=400)
