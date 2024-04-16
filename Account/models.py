@@ -5,11 +5,6 @@ class role(models.Model):
     idrole = models.AutoField(primary_key=True)
     role_descripction = models.CharField(max_length=50)
 
-
-
-
-
-
 # Create your models here.
 class Account(models.Model):
     idcuenta = models.AutoField(primary_key=True)

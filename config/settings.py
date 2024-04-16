@@ -51,7 +51,6 @@ MIDDLEWARE = [
     "corsheaders.middleware.CorsMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
-    "corsheaders.middleware.CorsMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
@@ -122,8 +121,10 @@ RABBITMQ_USERNAME = "messenger"
 RABBITMQ_PASSWORD = "messenger"
 
 
-CORS_ORIGIN_ALLOW_ALL = True
-CORS_ALLOW_ALL_ORIGINS = True
+CORS_ORIGIN_WHITELIST = [
+    'http://10.43.101.33:4201',  # Allow requests from this specific origin
+]
+CORS_ALLOW_CREDENTIALS = True  # Allow credentials in CORS requests
 CORS_ALLOW_CREDENTIALS = True
 
 # Internationalization

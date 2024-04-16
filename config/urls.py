@@ -19,6 +19,6 @@ from django.conf import settings
 from django.conf.urls.static import static
 
 urlpatterns = [
-    path("/Admin/user/", include("Account.urls")),
+    path("Admin/user/", include("Account.urls")),
     
 ]

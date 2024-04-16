@@ -40,13 +40,13 @@ class RegisterAccountView(APIView):
                 Account.objects.create(
                     first_name=jd['first_name'],
                     last_name=jd['last_name'],
-                    cedula=jd['cedula'],
+                    id_card=jd['id_card'],
                     role=role.objects.get(role=jd['role'])
                 )
                 Credentials.objects.create(
                     email=jd['email'],
                     password=make_password(jd['password']),
-                    idcuenta=Account.objects.get(cedula=jd['cedula'])
+                    idcuenta=Account.objects.get(id_card=jd['id_card'])
                 )
                 
                 return JsonResponse({'message': 'Cuenta creada exitosamente'}, status=201)
@@ -76,12 +76,12 @@ class LoginAccountView(APIView):
 
             payload = {
                 'id': account.idcuenta,
-                'role': account.role.role,
+                'role': account.role.role_descripction,
                 'exp': datetime.datetime.utcnow() + datetime.timedelta(minutes=360),
                 'iat': datetime.datetime.utcnow()
             }
             token = jwt.encode(payload, SECRET_KEY, algorithm='HS256')
-            response = JsonResponse({'jwt': token, 'role': account.role.role})
+            response = JsonResponse({'jwt': token, 'role': account.role.role_descripction})
             response.set_cookie(key='jwt', value=token, httponly=True)
             account.last_login = datetime.datetime.now()
             account.save()
