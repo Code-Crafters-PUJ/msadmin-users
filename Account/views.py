@@ -1,5 +1,5 @@
 import jwt
-from .models import Account, role, Credentials, Report
+from .models import Account, role, Credentials, Report, Module, Permissions
 from django.utils.decorators import method_decorator
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
@@ -30,26 +30,54 @@ class RegisterAccountView(APIView):
     def post(self, request):
         try:
             jd = json.loads(request.body)
-            
             email = jd['email']
             errors = {}
             if self.verriy_email(email):
                 return JsonResponse({'message': 'El email ya esta registrado'}, status=400)
             else:
-
+                role_name = role.objects.get(idrole=jd['rol'])
                 Account.objects.create(
-                    first_name=jd['first_name'],
+                    first_name=jd['name'],
                     last_name=jd['last_name'],
                     id_card=jd['id_card'],
-                    role=role.objects.get(role_descripction=jd['role'])
+                    role=role.objects.get(idrole=jd['rol'])
                 )
                 Credentials.objects.create(
                     email=jd['email'],
-                    password=make_password(jd['password']),
+                    password=make_password(jd['hash']),
                     idcuenta=Account.objects.get(id_card=jd['id_card'])
                 )
-                
-                
+                if role_name.role_descripction != 'ADMIN':
+                    permissions_data = jd.get('permissions', {})
+                    permissions_list = []
+                    for key, permission_data in permissions_data.items():
+                        nombre = permission_data.get('nombre', '')
+                        print(nombre)
+                        visualizar = permission_data.get('visualizar', False)
+                        modificar = permission_data.get('modificar', False)
+                        Permissions.objects.create(
+                            idModule=Module.objects.get(description=nombre),
+                            idAccount=Account.objects.get(id_card=jd['id_card']),
+                            can_modify=modificar,
+                            can_view=visualizar
+                        )
+                        
+                else:
+                    permissions_data = jd.get('permissions', {})
+                    permissions_list = []
+                    for key, permission_data in permissions_data.items():
+                        nombre = permission_data.get('nombre', '')
+                        visualizar = True
+                        modificar = True
+                        permiso = Permissions.objects.create(
+                            idModule=Module.objects.get(description=nombre),
+                            idAccount=Account.objects.get(id_card=jd['id_card']),
+                            can_modify=modificar,
+                            can_view=visualizar
+                        )
+                        permissions_list.append(permiso)
+                        
+                        Permissions.objects.bulk_create(permissions_list)
                 return JsonResponse({'message': 'Cuenta creada exitosamente'}, status=201)
         except Exception as e:
             return JsonResponse({'message': str(e)}, status=400)
@@ -64,8 +92,6 @@ class LoginAccountView(APIView):
         print(request)
         try:
             jd = json.loads(request.body)
-            print(jd)
-            print()
             email = jd.get('email')
             password = jd.get('password')
             if not email or not password:
@@ -85,6 +111,7 @@ class LoginAccountView(APIView):
             response = JsonResponse({'jwt': token, 'role': account.role.role_descripction})
             response.set_cookie(key='jwt', value=token, httponly=True)
             account.last_login = datetime.datetime.now()
+            account.connected = True
             account.save()
 
             return response
@@ -102,6 +129,28 @@ class LoginAccountView(APIView):
             print("Error durante el procesamiento de la solicitud:", e)
             # Devolver una respuesta de error adecuada
             return JsonResponse({'jwt': str(e)})
+
+class logoutAccountView(APIView):
+    @method_decorator(csrf_exempt)
+    def dispatch(self, request, *args, **kwargs):
+        return super().dispatch(request, *args, **kwargs)
+
+    def post(self, request):
+        try:
+            token = request.headers['Authorization']
+            payload = jwt.decode(token, SECRET_KEY, algorithms=['HS256'])
+            account = Account.objects.get(idcuenta=payload['id'])
+            account.connected = False
+            account.save()
+            return JsonResponse({'message': 'Usuario desconectado exitosamente'}, status=200)
+        except jwt.ExpiredSignatureError:
+            return JsonResponse({'message': 'Token expirado'}, status=400)
+        except jwt.InvalidTokenError:
+            return JsonResponse({'message': 'Token invalido'}, status=400)
+        except ObjectDoesNotExist:
+            return JsonResponse({'message': 'Usuario no encontrado'}, status=404)
+        except Exception as e:
+            return JsonResponse({'message': str(e)}, status=400)
 
 
 class getAccountInfoview(APIView):

@@ -39,8 +39,8 @@ class Module(models.Model):  # Subclass Model to define a Django model
 
 
 class Permissions(models.Model):  # Subclass Model to define a Django model
-    idPermissions = models.IntegerField(primary_key=True)
+    idPermissions = models.AutoField(primary_key=True)
     idModule = models.ForeignKey(Module, on_delete=models.CASCADE)
-    Operation = models.CharField(max_length=9, choices=[(
-        'Modify', 'Modify'), ('View', 'View')])
     idAccount = models.ForeignKey(Account, on_delete=models.CASCADE)
+    can_modify = models.BooleanField(default=False)
+    can_view = models.BooleanField(default=False)
