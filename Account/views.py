@@ -49,7 +49,6 @@ class RegisterAccountView(APIView):
                 )
                 if role_name.role_descripction != 'ADMIN':
                     permissions_data = jd.get('permissions', {})
-                    permissions_list = []
                     for key, permission_data in permissions_data.items():
                         nombre = permission_data.get('nombre', '')
                         visualizar = permission_data.get('visualizar', False)
@@ -64,7 +63,6 @@ class RegisterAccountView(APIView):
 
                 else:
                     permissions_data = jd.get('permissions', {})
-                    permissions_list = []
                     for key, permission_data in permissions_data.items():
                         nombre = permission_data.get('nombre', '')
                         visualizar = True
@@ -175,6 +173,21 @@ class getAccountInfoview(APIView):
             return 'Token expirado'
         except jwt.InvalidTokenError:
             return 'Token invalido'
+    def validate_permissions(self, token, module):
+        try:
+            payload = jwt.decode(token, SECRET_KEY, algorithms=['HS256'])
+            account = Account.objects.get(idcuenta=payload['id'])
+            permissions = Permissions.objects.get(
+                idModule=Module.objects.get(description=module),
+                idAccount=account
+            )
+            return permissions.can_view or permissions.can_modify
+        except jwt.ExpiredSignatureError:
+            return 'Token expirado'
+        except jwt.InvalidTokenError:
+            return 'Token invalido'
+        except ObjectDoesNotExist:
+            return 'No tienes permisos para realizar esta accion'
 
     def get(self, request, pk):
         try:
@@ -184,7 +197,7 @@ class getAccountInfoview(APIView):
                 return JsonResponse({'message': 'Token expirado'}, status=400)
             elif self.validate_token(token) == 'Token invalido':
                 return JsonResponse({'message': 'Token invalido'}, status=400)
-            elif self.validate_role(token) != 'ADMIN':
+            elif self.validate_role(token) != 'ADMIN'  or not self.validate_permissions(token, 'Usuarios'):
                 return JsonResponse({'message': 'No tienes permisos para realizar esta accion'}, status=400)
             else:
                 user = get_object_or_404(Account, pk=pk)
@@ -195,60 +208,75 @@ class getAccountInfoview(APIView):
             return JsonResponse({'message': str(e)}, status=400)
 
     def put(self, request, pk):
-        try:
-            jd = json.loads(request.body)
-            token = jd['jwt']
-            if self.validate_token(token) == 'Token expirado':
-                return JsonResponse({'message': 'Token expirado'}, status=400)
-            elif self.validate_token(token) == 'Token invalido':
-                return JsonResponse({'message': 'Token invalido'}, status=400)
-            elif self.validate_role(token) != 'ADMIN':
-                return JsonResponse({'message': 'No tienes permisos para realizar esta accion'}, status=400)
-            else:
+        #try:
+        jd = json.loads(request.body)
+        
+        token = request.headers['Authorization']
+        if self.validate_token(token) == 'Token expirado':
+            return JsonResponse({'message': 'Token expirado'}, status=400)
+        elif self.validate_token(token) == 'Token invalido':
+            return JsonResponse({'message': 'Token invalido'}, status=400)
+        elif self.validate_role(token) != 'ADMIN':
+            return JsonResponse({'message': 'No tienes permisos para realizar esta accion'}, status=400)
+        else:
+            account = get_object_or_404(Account, pk=pk)
 
-                account = get_object_or_404(Account, pk=pk)
-                account.first_name = jd.get('name', account.first_name)
-                account.last_name = jd.get('last_name', account.last_name)
-                account.save()
-                # Actualiza el rol si se proporciona
-                rol_id = jd.get('rol', None)
-                if rol_id:
-                    account.role = get_object_or_404(role, idrole=rol_id)
-                    account.save()
-                # Actualiza el email si se proporciona
-                email = jd.get('email', None)
-                if email:
-                    credentials = get_object_or_404(
-                        Credentials, idcuenta=account)
-                    credentials.email = email
-                    credentials.save()
-                # Actualiza la contraseña si se proporciona
-                hash_password = jd.get('hash', None)
-                if hash_password:
-                    credentials = Credentials.objects.get(idcuenta=account)
-                    credentials.password = make_password(hash_password)
-                    credentials.save()
-                # Actualiza los permisos si se proporcionan
+
+            name = jd.get('name', None)
+            last_name = jd.get('last_name', None)
+            if name:
+                account.first_name = name
+            if last_name:
+                account.last_name = last_name
+            if jd.get('rol', None):
+                account.role = role.objects.get(idrole=jd['rol'])
+            account.save()
+            
+            # Actualiza el email si se proporciona
+            email = jd.get('email', None)
+            if email:
+                credentials = get_object_or_404(
+                    Credentials, idcuenta=account)
+                credentials.email = email
+                credentials.save()
+            # Actualiza la contraseña si se proporciona
+            hash_password = jd.get('hash', None)
+            if hash_password:
+                credentials = Credentials.objects.get(idcuenta=account)
+                credentials.password = make_password(hash_password)
+                credentials.save()
+            # Actualiza los permisos si se proporcionan
+            if Permissions.objects.filter(idAccount=account).exists():
                 permissions_data = jd.get('permissions', {})
-                permissions_list = []
                 for key, permission_data in permissions_data.items():
                     nombre = permission_data.get('nombre', '')
                     visualizar = permission_data.get('visualizar', False)
                     modificar = permission_data.get('modificar', False)
-                    permiso = Permissions.objects.get(
+                    Permissions.objects.update(
                         idModule=Module.objects.get(description=nombre),
-                        idAccount=account
+                        idAccount=Account.objects.get(
+                            id_card=jd['id_card']),
+                        can_modify=modificar,
+                        can_view=visualizar
                     )
-                    permiso.can_modify = modificar
-                    permiso.can_view = visualizar
-                    permiso.save()
-                    permissions_list.append(permiso)
-
-                return JsonResponse({'message': 'Usuario actualizado exitosamente'}, status=200)
-        except ObjectDoesNotExist:
-            return JsonResponse({'message': 'Usuario no encontrado'}, status=404)
-        except Exception as e:
-            return JsonResponse({'message': str(e)}, status=400)
+            else:
+                permissions_data = jd.get('permissions', {})
+                for key, permission_data in permissions_data.items():
+                    nombre = permission_data.get('nombre', '')
+                    visualizar = permission_data.get('visualizar', False)
+                    modificar = permission_data.get('modificar', False)
+                    Permissions.objects.create(
+                        idModule=Module.objects.get(description=nombre),
+                        idAccount=Account.objects.get(
+                            id_card=jd['id_card']),
+                        can_modify=modificar,
+                        can_view=visualizar
+                    )
+            return JsonResponse({'message': 'Usuario actualizado exitosamente'}, status=200)
+        #except ObjectDoesNotExist:
+        #    return JsonResponse({'message': 'Usuario no encontrado'}, status=404)
+        #except Exception as e:
+        #    return JsonResponse({'message': str(e)}, status=400)
 
     def delete(self, request, pk):
         try:
