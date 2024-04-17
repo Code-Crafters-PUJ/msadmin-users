@@ -124,7 +124,7 @@ CORS_ORIGIN_WHITELIST = [
     'http://10.43.101.33:4201',  # Allow requests from this specific origin
 ]
 CORS_ALLOW_CREDENTIALS = True  # Allow credentials in CORS requests
-CORS_ALLOW_CREDENTIALS = True
+
 
 # Internationalization
 # https://docs.djangoproject.com/en/4.2/topics/i18n/

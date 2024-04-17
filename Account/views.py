@@ -211,7 +211,6 @@ class getAllAccountInfoview(APIView):
 
     def get(self, request):
         try:
-
             token = request.headers['Authorization']
             if self.validate_token(token) == 'Token expirado':
                 return JsonResponse({'message': 'Token expirado'}, status=400)
