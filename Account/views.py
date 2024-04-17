@@ -52,16 +52,16 @@ class RegisterAccountView(APIView):
                     permissions_list = []
                     for key, permission_data in permissions_data.items():
                         nombre = permission_data.get('nombre', '')
-                        print(nombre)
                         visualizar = permission_data.get('visualizar', False)
                         modificar = permission_data.get('modificar', False)
                         Permissions.objects.create(
                             idModule=Module.objects.get(description=nombre),
-                            idAccount=Account.objects.get(id_card=jd['id_card']),
+                            idAccount=Account.objects.get(
+                                id_card=jd['id_card']),
                             can_modify=modificar,
                             can_view=visualizar
                         )
-                        
+
                 else:
                     permissions_data = jd.get('permissions', {})
                     permissions_list = []
@@ -69,15 +69,13 @@ class RegisterAccountView(APIView):
                         nombre = permission_data.get('nombre', '')
                         visualizar = True
                         modificar = True
-                        permiso = Permissions.objects.create(
+                        Permissions.objects.create(
                             idModule=Module.objects.get(description=nombre),
-                            idAccount=Account.objects.get(id_card=jd['id_card']),
+                            idAccount=Account.objects.get(
+                                id_card=jd['id_card']),
                             can_modify=modificar,
                             can_view=visualizar
                         )
-                        permissions_list.append(permiso)
-                        
-                        Permissions.objects.bulk_create(permissions_list)
                 return JsonResponse({'message': 'Cuenta creada exitosamente'}, status=201)
         except Exception as e:
             return JsonResponse({'message': str(e)}, status=400)
@@ -108,7 +106,8 @@ class LoginAccountView(APIView):
                 'iat': datetime.datetime.utcnow()
             }
             token = jwt.encode(payload, SECRET_KEY, algorithm='HS256')
-            response = JsonResponse({'jwt': token, 'role': account.role.role_descripction})
+            response = JsonResponse(
+                {'jwt': token, 'role': account.role.role_descripction})
             response.set_cookie(key='jwt', value=token, httponly=True)
             account.last_login = datetime.datetime.now()
             account.connected = True
@@ -129,6 +128,7 @@ class LoginAccountView(APIView):
             print("Error durante el procesamiento de la solicitud:", e)
             # Devolver una respuesta de error adecuada
             return JsonResponse({'jwt': str(e)})
+
 
 class logoutAccountView(APIView):
     @method_decorator(csrf_exempt)
@@ -205,11 +205,45 @@ class getAccountInfoview(APIView):
             elif self.validate_role(token) != 'ADMIN':
                 return JsonResponse({'message': 'No tienes permisos para realizar esta accion'}, status=400)
             else:
-                user = get_object_or_404(Account, pk=pk)
-                serializer = AccountSerializer(user, data=jd)
-                if not serializer.is_valid(raise_exception=True):
-                    return JsonResponse({'message': serializer.errors}, status=400)
-                serializer.save()
+
+                account = get_object_or_404(Account, pk=pk)
+                account.first_name = jd.get('name', account.first_name)
+                account.last_name = jd.get('last_name', account.last_name)
+                account.save()
+                # Actualiza el rol si se proporciona
+                rol_id = jd.get('rol', None)
+                if rol_id:
+                    account.role = get_object_or_404(role, idrole=rol_id)
+                    account.save()
+                # Actualiza el email si se proporciona
+                email = jd.get('email', None)
+                if email:
+                    credentials = get_object_or_404(
+                        Credentials, idcuenta=account)
+                    credentials.email = email
+                    credentials.save()
+                # Actualiza la contraseña si se proporciona
+                hash_password = jd.get('hash', None)
+                if hash_password:
+                    credentials = Credentials.objects.get(idcuenta=account)
+                    credentials.password = make_password(hash_password)
+                    credentials.save()
+                # Actualiza los permisos si se proporcionan
+                permissions_data = jd.get('permissions', {})
+                permissions_list = []
+                for key, permission_data in permissions_data.items():
+                    nombre = permission_data.get('nombre', '')
+                    visualizar = permission_data.get('visualizar', False)
+                    modificar = permission_data.get('modificar', False)
+                    permiso = Permissions.objects.get(
+                        idModule=Module.objects.get(description=nombre),
+                        idAccount=account
+                    )
+                    permiso.can_modify = modificar
+                    permiso.can_view = visualizar
+                    permiso.save()
+                    permissions_list.append(permiso)
+
                 return JsonResponse({'message': 'Usuario actualizado exitosamente'}, status=200)
         except ObjectDoesNotExist:
             return JsonResponse({'message': 'Usuario no encontrado'}, status=404)
@@ -260,6 +294,7 @@ class getAllAccountInfoview(APIView):
 
     def get(self, request):
         try:
+
             token = request.headers['Authorization']
             if self.validate_token(token) == 'Token expirado':
                 return JsonResponse({'message': 'Token expirado'}, status=400)
