@@ -8,8 +8,10 @@ from config.settings import SECRET_KEY
 from django.contrib.auth.hashers import check_password
 from django.shortcuts import get_object_or_404
 from django.core.exceptions import ObjectDoesNotExist
-from .serializers import AccountSerializer, CredentialsSerializer, ReportSerializer
+from .serializers import AccountSerializer, CredentialsSerializer, ReportSerializer, PermissionsSerializer, CredentialsSerializer
 from django.contrib.auth.hashers import make_password
+from django.db import transaction
+
 
 
 import datetime
@@ -200,8 +202,30 @@ class getAccountInfoview(APIView):
             elif self.validate_role(token) != 'ADMIN'  or not self.validate_permissions(token, 'Usuarios'):
                 return JsonResponse({'message': 'No tienes permisos para realizar esta accion'}, status=400)
             else:
+                # Obtener el usuario
                 user = get_object_or_404(Account, pk=pk)
-                return JsonResponse({'user': AccountSerializer(user).data})
+
+                # Obtener las credenciales del usuario
+                credentials = Credentials.objects.filter(idcuenta=user)
+
+                # Obtener los permisos del usuario
+                permissions = Permissions.objects.filter(idAccount=user)
+
+                # Serializar los datos
+                user_data = AccountSerializer(user).data
+                credentials_data = CredentialsSerializer(credentials, many=True).data
+                permissions_data = PermissionsSerializer(permissions, many=True).data
+
+                # Crear el JSON con los datos combinados
+                combined_data = {
+                    'user': user_data,
+                    'credentials': credentials_data,
+                    'permissions': permissions_data
+                }
+
+                # Devolver la respuesta como JSON
+                return JsonResponse(combined_data)
+            
         except ObjectDoesNotExist:
             return JsonResponse({'message': 'Usuario no encontrado'}, status=404)
         except Exception as e:
@@ -288,8 +312,11 @@ class getAccountInfoview(APIView):
             elif self.validate_role(token) != 'ADMIN':
                 return JsonResponse({'message': 'No tienes permisos para realizar esta accion'}, status=400)
             else:
-                user = get_object_or_404(Account, pk=pk)
-                user.delete()
+                account = get_object_or_404(Account, pk=pk)
+                with transaction.atomic():
+                    account.delete()
+                    return JsonResponse({'message': 'Usuario eliminado exitosamente'}, status=200)
+
                 return JsonResponse({'message': 'Usuario eliminado exitosamente'}, status=200)
         except ObjectDoesNotExist:
             return JsonResponse({'message': 'Usuario no encontrado'}, status=404)
