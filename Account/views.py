@@ -312,10 +312,15 @@ class getAccountInfoview(APIView):
             elif self.validate_role(token) != 'ADMIN':
                 return JsonResponse({'message': 'No tienes permisos para realizar esta accion'}, status=400)
             else:
-                account = get_object_or_404(Account, pk=pk)
+                user = Account.objects.filter(idcuenta=pk)
+                cred=  Credentials.objects.filter(idcuenta=pk)
+                permi =Permissions.objects.filter(idAccount=pk)
                 with transaction.atomic():
-                    account.delete()
-                    return JsonResponse({'message': 'Usuario eliminado exitosamente'}, status=200)
+                    user.delete()
+                    cred.delete()
+                    permi.delete()
+
+
 
                 return JsonResponse({'message': 'Usuario eliminado exitosamente'}, status=200)
         except ObjectDoesNotExist:
