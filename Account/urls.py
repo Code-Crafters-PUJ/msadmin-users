@@ -12,4 +12,3 @@ urlpatterns = [
     path('getAccounts', getAllAccountInfoview.as_view(), name='accounts_info'),
     path('logout', logoutAccountView.as_view(), name='accounts_info'),
 ]
-

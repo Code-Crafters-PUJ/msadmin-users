@@ -11,6 +11,7 @@ from django.core.exceptions import ObjectDoesNotExist
 from .serializers import AccountSerializer, CredentialsSerializer, ReportSerializer, PermissionsSerializer, CredentialsSerializer
 from django.contrib.auth.hashers import make_password
 from django.db import transaction
+from django.db import IntegrityError
 
 
 
@@ -35,7 +36,7 @@ class RegisterAccountView(APIView):
             email = jd['email']
             errors = {}
             if self.verriy_email(email):
-                return JsonResponse({'message': 'El email ya esta registrado'}, status=400)
+                return JsonResponse({'message': 'El email ya esta registrado'}, status=201)
             else:
                 role_name = role.objects.get(idrole=jd['rol'])
                 Account.objects.create(
@@ -49,7 +50,7 @@ class RegisterAccountView(APIView):
                     password=make_password(jd['hash']),
                     idcuenta=Account.objects.get(id_card=jd['id_card'])
                 )
-                if role_name.role_descripction != 'ADMIN':
+                if role_name.role_descripction != 'Admin':
                     permissions_data = jd.get('permissions', {})
                     for key, permission_data in permissions_data.items():
                         nombre = permission_data.get('nombre', '')
@@ -77,7 +78,12 @@ class RegisterAccountView(APIView):
                             can_view=visualizar
                         )
                 return JsonResponse({'message': 'Cuenta creada exitosamente'}, status=201)
+        except IntegrityError as e:
+            error_message = 'El ID ya existe en la base de datos'
+            return JsonResponse({'message': error_message}, status=201)
+
         except Exception as e:
+            print(e)
             return JsonResponse({'message': str(e)}, status=400)
 
 
@@ -193,13 +199,12 @@ class getAccountInfoview(APIView):
 
     def get(self, request, pk):
         try:
-
             token = request.headers['Authorization']
             if self.validate_token(token) == 'Token expirado':
                 return JsonResponse({'message': 'Token expirado'}, status=400)
             elif self.validate_token(token) == 'Token invalido':
                 return JsonResponse({'message': 'Token invalido'}, status=400)
-            elif self.validate_role(token) != 'ADMIN'  or not self.validate_permissions(token, 'Usuarios'):
+            elif self.validate_role(token) != 'Admin'  or not self.validate_permissions(token, 'Usuarios'):
                 return JsonResponse({'message': 'No tienes permisos para realizar esta accion'}, status=400)
             else:
                 # Obtener el usuario
@@ -240,20 +245,21 @@ class getAccountInfoview(APIView):
             return JsonResponse({'message': 'Token expirado'}, status=400)
         elif self.validate_token(token) == 'Token invalido':
             return JsonResponse({'message': 'Token invalido'}, status=400)
-        elif self.validate_role(token) != 'ADMIN':
+        elif self.validate_role(token) != 'Admin':
             return JsonResponse({'message': 'No tienes permisos para realizar esta accion'}, status=400)
         else:
             account = get_object_or_404(Account, pk=pk)
-
-
             name = jd.get('name', None)
             last_name = jd.get('last_name', None)
+            id_card=jd.get('id_card',None)
             if name:
                 account.first_name = name
             if last_name:
                 account.last_name = last_name
             if jd.get('rol', None):
                 account.role = role.objects.get(idrole=jd['rol'])
+            if jd.get('id_card',None):
+                account.id_card=id_card
             account.save()
             
             # Actualiza el email si se proporciona
@@ -309,18 +315,13 @@ class getAccountInfoview(APIView):
                 return JsonResponse({'message': 'Token expirado'}, status=400)
             elif self.validate_token(token) == 'Token invalido':
                 return JsonResponse({'message': 'Token invalido'}, status=400)
-            elif self.validate_role(token) != 'ADMIN':
+            elif self.validate_role(token) != 'Admin':
                 return JsonResponse({'message': 'No tienes permisos para realizar esta accion'}, status=400)
             else:
-                user = Account.objects.filter(idcuenta=pk)
-                cred=  Credentials.objects.filter(idcuenta=pk)
-                permi =Permissions.objects.filter(idAccount=pk)
+                account = get_object_or_404(Account, pk=pk)
                 with transaction.atomic():
-                    user.delete()
-                    cred.delete()
-                    permi.delete()
-
-
+                    account.delete()
+                    return JsonResponse({'message': 'Usuario eliminado exitosamente'}, status=200)
 
                 return JsonResponse({'message': 'Usuario eliminado exitosamente'}, status=200)
         except ObjectDoesNotExist:
@@ -360,19 +361,16 @@ class getAllAccountInfoview(APIView):
                 return JsonResponse({'message': 'Token expirado'}, status=400)
             elif self.validate_token(token) == 'Token invalido':
                 return JsonResponse({'message': 'Token invalido'}, status=400)
-            elif self.validate_role(token) != 'ADMIN':
+            elif self.validate_role(token) != 'Admin':
                 return JsonResponse({'message': 'No tienes permisos para realizar esta accion'}, status=400)
             else:
-                account_data = AccountSerializer(
-                    Account.objects.all(), many=True).data
+                accounts = Account.objects.select_related('role').prefetch_related('report_set', 'credentials_set')
+                serializer = AccountSerializer(accounts, many=True)
+                return JsonResponse(serializer.data, safe=False)
 
-                report_data = ReportSerializer(
-                    Report.objects.all(), many=True).data
-                credentials_data = CredentialsSerializer(
-                    Credentials.objects.all(), many=True).data
-                return JsonResponse({'account': account_data, 'report': report_data, 'credentials': credentials_data})
 
         except ObjectDoesNotExist:
             return JsonResponse({'message': 'No hay usuarios'}, status=404)
         except Exception as e:
+            print(e)
             return JsonResponse({'message': str(e)}, status=400)
