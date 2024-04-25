@@ -7,10 +7,10 @@ from django.db import migrations, models
 def create_roles(apps, schema_editor):
     Roles = apps.get_model('Account', 'role')
     datos = [
-        {'role_descripction': 'ADMIN'},
-        {'role_descripction': 'VENTAS'},
-        {'role_descripction': 'SOPORTE'},
-        {'role_descripction': 'MARKETING'},
+        {'role_descripction': 'Admin'},
+        {'role_descripction': 'Ventas'},
+        {'role_descripction': 'Soporte'},
+        {'role_descripction': 'marketing'},
     ]
     for dato in datos:
         Roles.objects.create(**dato)

@@ -282,13 +282,20 @@ class getAccountInfoview(APIView):
                     nombre = permission_data.get('nombre', '')
                     visualizar = permission_data.get('visualizar', False)
                     modificar = permission_data.get('modificar', False)
-                    Permissions.objects.update(
-                        idModule=Module.objects.get(description=nombre),
-                        idAccount=Account.objects.get(
-                            id_card=jd['id_card']),
-                        can_modify=modificar,
-                        can_view=visualizar
-                    )
+                    module = Module.objects.filter(description=nombre).first()
+                    if module and account:
+                        Permissions.objects.filter(idModule=module, idAccount=account).update(
+                            can_modify=modificar,
+                            can_view=visualizar
+                        )
+                    else:
+                        Permissions.objects.create(
+                            idModule=Module.objects.get(description=nombre),
+                            idAccount=Account.objects.get(
+                                id_card=jd['id_card']),
+                            can_modify=modificar,
+                            can_view=visualizar
+                        )
             else:
                 permissions_data = jd.get('permissions', {})
                 for key, permission_data in permissions_data.items():
