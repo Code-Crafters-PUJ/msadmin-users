@@ -33,3 +33,10 @@ class PermissionsSerializer(serializers.ModelSerializer):
     class Meta:
         model = Permissions
         fields = '__all__'
+
+class PermissionsSerializerLogIn(serializers.ModelSerializer):
+    module_name = serializers.CharField(source='idModule.description')
+
+    class Meta:
+        model = Permissions
+        fields = ['module_name', 'can_view', 'can_modify']

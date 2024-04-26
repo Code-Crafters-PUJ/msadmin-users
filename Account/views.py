@@ -8,7 +8,7 @@ from config.settings import SECRET_KEY
 from django.contrib.auth.hashers import check_password
 from django.shortcuts import get_object_or_404
 from django.core.exceptions import ObjectDoesNotExist
-from .serializers import AccountSerializer, CredentialsSerializer, ReportSerializer, PermissionsSerializer, CredentialsSerializer
+from .serializers import AccountSerializer, CredentialsSerializer, ReportSerializer, PermissionsSerializer, CredentialsSerializer,PermissionsSerializerLogIn
 from django.contrib.auth.hashers import make_password
 from django.db import transaction
 from django.db import IntegrityError
@@ -104,6 +104,9 @@ class LoginAccountView(APIView):
             if not check_password(password, user.password):
                 return JsonResponse({'jwt': 'ups! credenciales incorrectas'})
             account = Account.objects.get(idcuenta=user.idcuenta_id)
+            permissions = Permissions.objects.filter(idAccount=account.idcuenta)
+            permissions_data = PermissionsSerializerLogIn(permissions, many=True).data
+
 
             payload = {
                 'id': account.idcuenta,
@@ -113,13 +116,14 @@ class LoginAccountView(APIView):
             }
             token = jwt.encode(payload, SECRET_KEY, algorithm='HS256')
             response = JsonResponse(
-                {'jwt': token, 'role': account.role.role_descripction})
+                {'jwt': token, 'role': account.role.role_descripction,'Permissions':permissions_data})
             response.set_cookie(key='jwt', value=token, httponly=True)
             account.last_login = datetime.datetime.now()
             account.connected = True
             account.save()
 
             return response
+
 
         except json.JSONDecodeError as e:
             print("Error al decodificar JSON:", e)
@@ -278,38 +282,26 @@ class getAccountInfoview(APIView):
             # Actualiza los permisos si se proporcionan
             if Permissions.objects.filter(idAccount=account).exists():
                 permissions_data = jd.get('permissions', {})
-                for key, permission_data in permissions_data.items():
-                    nombre = permission_data.get('nombre', '')
-                    visualizar = permission_data.get('visualizar', False)
-                    modificar = permission_data.get('modificar', False)
-                    module = Module.objects.filter(description=nombre).first()
-                    if module and account:
-                        Permissions.objects.filter(idModule=module, idAccount=account).update(
-                            can_modify=modificar,
-                            can_view=visualizar
-                        )
-                    else:
-                        Permissions.objects.create(
-                            idModule=Module.objects.get(description=nombre),
-                            idAccount=Account.objects.get(
-                                id_card=jd['id_card']),
-                            can_modify=modificar,
-                            can_view=visualizar
-                        )
-            else:
-                permissions_data = jd.get('permissions', {})
-                for key, permission_data in permissions_data.items():
-                    nombre = permission_data.get('nombre', '')
-                    visualizar = permission_data.get('visualizar', False)
-                    modificar = permission_data.get('modificar', False)
-                    Permissions.objects.create(
-                        idModule=Module.objects.get(description=nombre),
-                        idAccount=Account.objects.get(
-                            id_card=jd['id_card']),
-                        can_modify=modificar,
-                        can_view=visualizar
-                    )
-            return JsonResponse({'message': 'Usuario actualizado exitosamente'}, status=200)
+
+                for permission_data in permissions_data:
+
+                 module_name = list(permission_data.keys())[0]
+                 visualizar = permission_data[module_name].get('can_view', False)
+                 modificar = permission_data[module_name].get('can_modify', False)
+            
+                 if module_name:
+                  module, created = Module.objects.get_or_create(description=module_name)
+                  permission, created = Permissions.objects.get_or_create(
+                    idModule=module,
+                    idAccount=account,
+                    defaults={'can_modify': modificar, 'can_view': visualizar})
+                
+                  if not created:
+                    permission.can_modify = modificar
+                    permission.can_view = visualizar
+                    permission.save()
+        
+        return JsonResponse({'message': 'Usuario actualizado exitosamente'}, status=200)
         #except ObjectDoesNotExist:
         #    return JsonResponse({'message': 'Usuario no encontrado'}, status=404)
         #except Exception as e:
