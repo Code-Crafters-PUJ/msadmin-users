@@ -19,10 +19,11 @@ def create_roles(apps, schema_editor):
 def create_models(apps, schema_editor):
     Modules = apps.get_model('Account', 'Module')
     datos = [
-        {'description': 'ADMIN'},
-        {'description': 'VENTAS'},
-        {'description': 'SOPORTE'},
-        {'description': 'MARKETING'},
+        {'description': 'Admin'},
+        {'description': 'Ventas'},
+        {'description': 'Soporte'},
+        {'description': 'Marketing'},
+        {'description': 'Monitoreo'},
     ]
     for dato in datos:
         Modules.objects.create(**dato)
