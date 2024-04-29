@@ -208,8 +208,6 @@ class getAccountInfoview(APIView):
                 return JsonResponse({'message': 'Token expirado'}, status=400)
             elif self.validate_token(token) == 'Token invalido':
                 return JsonResponse({'message': 'Token invalido'}, status=400)
-            elif self.validate_role(token) != 'Admin'  or not self.validate_permissions(token, 'Usuarios'):
-                return JsonResponse({'message': 'No tienes permisos para realizar esta accion'}, status=400)
             else:
                 # Obtener el usuario
                 user = get_object_or_404(Account, pk=pk)
@@ -249,13 +247,16 @@ class getAccountInfoview(APIView):
             return JsonResponse({'message': 'Token expirado'}, status=400)
         elif self.validate_token(token) == 'Token invalido':
             return JsonResponse({'message': 'Token invalido'}, status=400)
-        elif self.validate_role(token) != 'Admin':
-            return JsonResponse({'message': 'No tienes permisos para realizar esta accion'}, status=400)
         else:
             account = get_object_or_404(Account, pk=pk)
             name = jd.get('name', None)
             last_name = jd.get('last_name', None)
             id_card=jd.get('id_card',None)
+            if id_card:
+            # Verificar si el nuevo valor de id_card ya está en uso por otra cuenta
+              existing_account = Account.objects.exclude(pk=pk).filter(id_card=id_card)
+              if existing_account.exists():
+                return JsonResponse({'message': 'El número de identificación ya está en uso por otra cuenta'}, status=201)
             if name:
                 account.first_name = name
             if last_name:
@@ -269,6 +270,10 @@ class getAccountInfoview(APIView):
             # Actualiza el email si se proporciona
             email = jd.get('email', None)
             if email:
+                existing_credentials = Credentials.objects.filter(email=email).exclude(idcuenta=account)
+                if existing_credentials.exists():
+                  return JsonResponse({'message': 'El correo electrónico ya está en uso'}, status=201)
+
                 credentials = get_object_or_404(
                     Credentials, idcuenta=account)
                 credentials.email = email
@@ -314,8 +319,6 @@ class getAccountInfoview(APIView):
                 return JsonResponse({'message': 'Token expirado'}, status=400)
             elif self.validate_token(token) == 'Token invalido':
                 return JsonResponse({'message': 'Token invalido'}, status=400)
-            elif self.validate_role(token) != 'Admin':
-                return JsonResponse({'message': 'No tienes permisos para realizar esta accion'}, status=400)
             else:
                 account = get_object_or_404(Account, pk=pk)
                 with transaction.atomic():
@@ -360,8 +363,6 @@ class getAllAccountInfoview(APIView):
                 return JsonResponse({'message': 'Token expirado'}, status=400)
             elif self.validate_token(token) == 'Token invalido':
                 return JsonResponse({'message': 'Token invalido'}, status=400)
-            elif self.validate_role(token) != 'Admin':
-                return JsonResponse({'message': 'No tienes permisos para realizar esta accion'}, status=400)
             else:
                 accounts = Account.objects.select_related('role').prefetch_related('report_set', 'credentials_set')
                 serializer = AccountSerializer(accounts, many=True)
