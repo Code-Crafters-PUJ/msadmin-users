@@ -33,3 +33,15 @@ build/
 
 ### VS Code ###
 .vscode/
+
+
+### django ###
+*.log
+*.pot
+*.pyc
+__pycache__/
+.venv/
+
+myenv/
+
+
