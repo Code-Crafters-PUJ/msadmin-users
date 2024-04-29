@@ -26,6 +26,3 @@ python manage.py runserver
 ```bash
 python manage.py test
 ```
-
-
-
