@@ -116,7 +116,7 @@ class LoginAccountView(APIView):
             }
             token = jwt.encode(payload, SECRET_KEY, algorithm='HS256')
             response = JsonResponse(
-                {'jwt': token, 'role': account.role.role_descripction,'Permissions':permissions_data})
+                {'jwt': token, 'role': account.role.role_descripction,'Permissions':permissions_data,'id':account.idcuenta})
             response.set_cookie(key='jwt', value=token, httponly=True)
             account.last_login = datetime.datetime.now()
             account.connected = True
