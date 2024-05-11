@@ -122,7 +122,7 @@ RABBITMQ_PASSWORD = "messenger"
 
 CORS_ORIGIN_WHITELIST = [
     'http://10.43.101.33:4201',
-    'http://admin.stockwage.duckdns.org'  # Allow requests from this specific origin
+    'https://admin.stockwage.duckdns.org'  # Allow requests from this specific origin
 ]
 CORS_ALLOW_CREDENTIALS = True  # Allow credentials in CORS requests
 
