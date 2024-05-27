@@ -3,8 +3,9 @@ from django.urls import reverse
 from django.test import Client
 import json
 # Make sure to import your models
-from Account.models import Account, Credentials, role
+from Account.models import Account, Credentials, Role, Permissions, Module
 from django.contrib.auth.models import User
+from django.contrib.auth.hashers import make_password
 
 
 @pytest.fixture
@@ -14,20 +15,58 @@ def client():
 
 @pytest.fixture
 def create_test_data():
-    # Create an Account instance
+    jd = {
+        'name': 'John',
+        'last_name': 'Doe',
+        'id_card': '123456789',
+        'rol': 1,  # ID del rol en la base de datos
+        'email': 'test@example.com',
+        'hash': 'hashed_password',
+        'permissions': {
+            'module1': {'nombre': 'Module 1', 'visualizar': True, 'modificar': False},
+            'module2': {'nombre': 'Module 2', 'visualizar': True, 'modificar': True},
+        }
+    }
+    # Crear la cuenta
+    role_instance = Role.objects.get(idrole=jd['rol'])
     account = Account.objects.create(
-        first_name='First',
-        last_name='Last',
-        cedula='1234567890',
-        role=role.objects.get(role='ADMIN')
+        first_name=jd['name'],
+        last_name=jd['last_name'],
+        id_card=jd['id_card'],
+        role=role_instance
     )
 
-    # Create a Credentials instance associated with the created account
-    credentials = Credentials.objects.create(
-        email='test@example.com',
-        password='hashed_password',
-        idcuenta=Account.objects.get(cedula='1234567890')
+    # Crear las credenciales
+    credentials =  Credentials.objects.create(
+        email=jd['email'],
+        password=make_password(jd['hash']),
+        idcuenta=account
     )
+
+    # Determinar los permisos basados en el rol
+    permissions_data = jd.get('permissions', {})
+    if role_instance.role_description != 'Admin':
+        for key, permission_data in permissions_data.items():
+            nombre = permission_data.get('nombre', '')
+            visualizar = permission_data.get('visualizar', False)
+            modificar = permission_data.get('modificar', False)
+            module = Module.objects.get(description=nombre)
+            Permissions.objects.create(
+                idModule=module,
+                idAccount=account,
+                can_modify=modificar,
+                can_view=visualizar
+            )
+    else:
+        for key, permission_data in permissions_data.items():
+            nombre = permission_data.get('nombre', '')
+            module = Module.objects.get(description=nombre)
+            Permissions.objects.create(
+                idModule=module,
+                idAccount=account,
+                can_modify=True,
+                can_view=True
+            )
 
     return credentials
 
@@ -74,12 +113,16 @@ def test_invalid_password(client, create_test_data):
 def test_register_account_view_success():
     # Prepare request data
     data = {
-        'first_name': 'Test',
-        'last_name': 'User',
-        'cedula': '1234567890',
+        'name': 'John',
+        'last_name': 'Doe',
+        'id_card': '123456789',
+        'rol': 1,  # ID del rol en la base de datos
         'email': 'test@example.com',
-        'password': 'test_password',
-        'role': 'ADMIN'
+        'hash': 'hashed_password',
+        'permissions': {
+            'module1': {'nombre': 'Module 1', 'visualizar': True, 'modificar': False},
+            'module2': {'nombre': 'Module 2', 'visualizar': True, 'modificar': True},
+        }
     }
     client = Client()
 
@@ -100,29 +143,63 @@ def test_register_account_view_success():
 @pytest.mark.django_db
 def test_register_account_view_email_already_exists():
     # Create a user with the same email to simulate email already exists scenario
-    Account.objects.create(
-        first_name='First',
-        last_name='Last',
-        cedula='1234567890',
-        role=role.objects.get(role='ADMIN')
-    )
-
-    # Create a Credentials instance associated with the created account
-    Credentials.objects.create(
-        email='test@example.com',
-        password='hashed_password',
-        idcuenta=Account.objects.get(cedula='1234567890')
-    )
+    
 
     # Prepare request data
-    data = {
-        'first_name': 'Test',
-        'last_name': 'User',
-        'cedula': '1234567890',
+    jd = {
+        'name': 'John',
+        'last_name': 'Doe',
+        'id_card': '123456789',
+        'rol': 1,  # ID del rol en la base de datos
         'email': 'test@example.com',
-        'password': 'test_password',
-        'role': 'admin'  # Assuming 'admin' is a valid role
+        'hash': 'hashed_password',
+        'permissions': {
+            'module1': {'nombre': 'Module 1', 'visualizar': True, 'modificar': False},
+            'module2': {'nombre': 'Module 2', 'visualizar': True, 'modificar': True},
+        }
     }
+
+    role_instance = Role.objects.get(idrole=jd['rol'])
+    account = Account.objects.create(
+        first_name=jd['name'],
+        last_name=jd['last_name'],
+        id_card=jd['id_card'],
+        role=role_instance
+    )
+
+    # Crear las credenciales
+    credentials = Credentials.objects.create(
+        email=jd['email'],
+        password=make_password(jd['hash']),
+        idcuenta=account
+    )
+
+    # Determinar los permisos basados en el rol
+    permissions_data = jd.get('permissions', {})
+    if role_instance.role_description != 'Admin':
+        for key, permission_data in permissions_data.items():
+            nombre = permission_data.get('nombre', '')
+            visualizar = permission_data.get('visualizar', False)
+            modificar = permission_data.get('modificar', False)
+            module = Module.objects.get(description=nombre)
+            Permissions.objects.create(
+                idModule=module,
+                idAccount=account,
+                can_modify=modificar,
+                can_view=visualizar
+            )
+    else:
+        for key, permission_data in permissions_data.items():
+            nombre = permission_data.get('nombre', '')
+            module = Module.objects.get(description=nombre)
+            Permissions.objects.create(
+                idModule=module,
+                idAccount=account,
+                can_modify=True,
+                can_view=True
+            )
+
+
     client = Client()
 
     # Send POST request to register endpoint
@@ -166,20 +243,57 @@ def test_register_account_view_invalid_data():
 @pytest.mark.django_db
 def test_get_account_info_view_success():
     # Crear un usuario para obtener información
+    jd = {
+        'name': 'John',
+        'last_name': 'Doe',
+        'id_card': '123456789',
+        'rol': 1,  # ID del rol en la base de datos
+        'email': 'test@example.com',
+        'hash': 'hashed_password',
+        'permissions': {
+            'module1': {'nombre': 'Module 1', 'visualizar': True, 'modificar': False},
+            'module2': {'nombre': 'Module 2', 'visualizar': True, 'modificar': True},
+        }
+    }
+    role_instance = Role.objects.get(idrole=jd['rol'])
     user = Account.objects.create(
-        first_name='First',
-        last_name='Last',
-        cedula='1234567890',
-        # Asegúrate de que este rol exista en tu base de datos
-        role=role.objects.get(role='ADMIN')
+        first_name=jd['name'],
+        last_name=jd['last_name'],
+        id_card=jd['id_card'],
+        role=role_instance
     )
 
-    # Crear una instancia de Credentials asociada a la cuenta creada
-    Credentials.objects.create(
-        email='testing@example.com',
-        password='hashed_password',
-        idcuenta=Account.objects.get(cedula='1234567890')
+    # Crear las credenciales
+    credentials = Credentials.objects.create(
+        email=jd['email'],
+        password=make_password(jd['hash']),
+        idcuenta=user
     )
+
+    # Determinar los permisos basados en el rol
+    permissions_data = jd.get('permissions', {})
+    if role_instance.role_description != 'Admin':
+        for key, permission_data in permissions_data.items():
+            nombre = permission_data.get('nombre', '')
+            visualizar = permission_data.get('visualizar', False)
+            modificar = permission_data.get('modificar', False)
+            module = Module.objects.get(description=nombre)
+            Permissions.objects.create(
+                idModule=module,
+                idAccount=user,
+                can_modify=modificar,
+                can_view=visualizar
+            )
+    else:
+        for key, permission_data in permissions_data.items():
+            nombre = permission_data.get('nombre', '')
+            module = Module.objects.get(description=nombre)
+            Permissions.objects.create(
+                idModule=module,
+                idAccount=user,
+                can_modify=True,
+                can_view=True
+            )
 
     # Preparar datos de inicio de sesión
     client = Client()
@@ -215,27 +329,57 @@ def test_get_account_info_view_success():
 @pytest.mark.django_db
 def test_update_account_info_view_success():
     # Create a user to update information
-    user = Account.objects.create(
-        first_name='First',
-        last_name='Last',
-        cedula='1234567890',
-        role=role.objects.get(role='ADMIN')
-    )
-
-    # Create a Credentials instance associated with the created account
-    Credentials.objects.create(
-        email='test@example.com',
-        password='hashed_password',
-        idcuenta=Account.objects.get(cedula='1234567890')
-    )
-
-    # Prepare request data
-    token = 'valid_jwt_token'
-    headers = {'Authorization': token}
-    data = {
-        'first_name': 'Updated',
-        'last_name': 'User'
+    jd = {
+        'name': 'John',
+        'last_name': 'Doe',
+        'id_card': '123456789',
+        'rol': 1,  # ID del rol en la base de datos
+        'email': 'test@example.com',
+        'hash': 'hashed_password',
+        'permissions': {
+            'module1': {'nombre': 'Module 1', 'visualizar': True, 'modificar': False},
+            'module2': {'nombre': 'Module 2', 'visualizar': True, 'modificar': True},
+        }
     }
+    role_instance = Role.objects.get(idrole=jd['rol'])
+    user = Account.objects.create(
+        first_name=jd['name'],
+        last_name=jd['last_name'],
+        id_card=jd['id_card'],
+        role=role_instance
+    )
+
+    # Crear las credenciales
+    credentials = Credentials.objects.create(
+        email=jd['email'],
+        password=make_password(jd['hash']),
+        idcuenta=user
+    )
+
+    # Determinar los permisos basados en el rol
+    permissions_data = jd.get('permissions', {})
+    if role_instance.role_description != 'Admin':
+        for key, permission_data in permissions_data.items():
+            nombre = permission_data.get('nombre', '')
+            visualizar = permission_data.get('visualizar', False)
+            modificar = permission_data.get('modificar', False)
+            module = Module.objects.get(description=nombre)
+            Permissions.objects.create(
+                idModule=module,
+                idAccount=user,
+                can_modify=modificar,
+                can_view=visualizar
+            )
+    else:
+        for key, permission_data in permissions_data.items():
+            nombre = permission_data.get('nombre', '')
+            module = Module.objects.get(description=nombre)
+            Permissions.objects.create(
+                idModule=module,
+                idAccount=user,
+                can_modify=True,
+                can_view=True
+            )
     client = Client()
 
     # Send PUT request to update user information
@@ -257,7 +401,7 @@ def test_delete_account_info_view_success():
         first_name='First',
         last_name='Last',
         cedula='1234567890',
-        role=role.objects.get(role='ADMIN')
+        role=Role.objects.get(role='ADMIN')
     )
 
     # Create a Credentials instance associated with the created account
@@ -266,6 +410,18 @@ def test_delete_account_info_view_success():
         password='hashed_password',
         idcuenta=Account.objects.get(cedula='1234567890')
     )
+
+    credentials_data = {
+        'email': 'test@example.com',
+        'password': 'hashed_password'
+    }
+    response = client.post(reverse('user:user_login'), json.dumps(
+        credentials_data), content_type='application/json')
+    # Asumiendo que un inicio de sesión exitoso devuelve un código de estado 200
+    assert response.status_code == 200
+    print(response.json())
+
+    token = response.json().get('jwt')
 
     # Prepare request data
     headers = {'Authorization': token}
